@@ -139,7 +139,7 @@ function GetDesireHelper()
 end
 
 function Think()
-    if J.CanNotUseAction(bot) then return end
+    if J.CanNotUseActionExceptQueue(bot) then return end
 	if J.Utils.IsBotThinkingMeaningfulAction(bot, Customize.ThinkLess, "roam") then return end
 
 	nInRangeEnemy = bot:GetNearbyHeroes(1200, true, BOT_MODE_NONE)

@@ -110,6 +110,24 @@ function J.CanNotUseAction( bot )
 
 end
 
+function J.CanNotUseActionExceptQueue( bot )
+	-- OHA MOD 2026/08/27: 窄版守卫（不含 HasQueuedAction）——Think 里排队中的移动指令
+	-- 应能被攻击/新行为打断；全量版在队列未消化时整帧跳过 Think = 模式挂机的通用土壤
+	-- （attack 模式 8/13 已换窄版修过同款，本函数供其余模式统一使用）
+	return not bot:IsAlive()
+			or (bot:IsInvulnerable() and not bot:HasModifier('modifier_fountain_invulnerability') and not bot:HasModifier('modifier_dazzle_nothl_projection_soul_debuff'))
+			or bot:IsCastingAbility()
+			or bot:IsUsingAbility()
+			or bot:IsChanneling()
+			or (bot:IsStunned() and not bot:HasModifier('modifier_dazzle_nothl_projection_soul_debuff'))
+			or bot:IsNightmared()
+			or bot:HasModifier( 'modifier_ringmaster_the_box_buff' )
+			or bot:HasModifier( 'modifier_item_forcestaff_active' )
+			or bot:HasModifier( 'modifier_phantom_lancer_phantom_edge_boost' )
+			or bot:HasModifier( 'modifier_tinker_rearm' )
+
+end
+
 function J.CanNotUseAbility( bot )
 	return not bot:IsAlive()
 			or J.HasQueuedAction( bot )

@@ -490,7 +490,7 @@ function OnEnd()
 end
 
 function Think()
-	if J.CanNotUseAction(bot) then return end
+	if J.CanNotUseActionExceptQueue(bot) then return end
 	if J.Utils.IsBotThinkingMeaningfulAction(bot, Customize.ThinkLess, "farm") then return end
 	sec = math.floor(DotaTime()) % 60
 	if runMode

@@ -198,9 +198,43 @@ function Think()
 					return
 				end
 			end
-		end
 
-		local denyCreep = GetBestDenyCreep(nAllyCreeps)
+			-- OHA MOD 2026/08/27: 让刀后压人——让刀真空是"4 号位呆呆不帮忙"的根因：
+			-- 让刀后没刀补、反补苛刻、线上没野 → 兜底 ±50 站位 = 站真人身后发呆。
+			-- 改为让刀时压制对线敌人（600 码内最近的有效敌人），血量健康才压（>0.55），
+			-- 有保命状态的跳过。attack 模式的骚扰打分（0.42）负责模式级压制，
+			-- 这里只在 laning Think 内部兜住"让刀瞬间"的空档。
+			if bHumanNearby and J.GetPosition(bot) > 2 then
+				local pressTarget = nil
+				local pressRange = math.max(botAttackRange + 150, 500)
+				for _, enemy in ipairs(nInRangeEnemy) do
+					if J.IsValidHero(enemy)
+					and not J.IsSuspiciousIllusion(enemy)
+					and J.CanBeAttacked(enemy)
+					and not enemy:HasModifier('modifier_abaddon_borrowed_time')
+					and not enemy:HasModifier('modifier_necrolyte_reapers_scythe')
+					and not enemy:HasModifier('modifier_skeleton_king_reincarnation_scepter_active')
+					and not enemy:HasModifier('modifier_ursa_enrage')
+					and not enemy:HasModifier('modifier_item_aeon_disk_buff')
+					and J.IsInRange(bot, enemy, pressRange)
+					then
+						pressTarget = enemy
+						break
+					end
+				end
+				if pressTarget ~= nil and J.GetHP(bot) > 0.55 then
+					if GetUnitToUnitDistance(bot, pressTarget) > botAttackRange then
+						bot:Action_MoveToLocation(pressTarget:GetLocation() + RandomVector(100))
+					else
+						bot:SetTarget(pressTarget)
+						bot:Action_AttackUnit(pressTarget, true)
+					end
+					return
+					end
+					end
+					end
+
+					local denyCreep = GetBestDenyCreep(nAllyCreeps)
 		if J.IsValid(denyCreep) then
 			bot:SetTarget(denyCreep)
 			bot:Action_AttackUnit(denyCreep, true)
@@ -239,7 +273,8 @@ function Think()
 			target_loc = GetLaneFrontLocation(GetOpposingTeam(), botAssignedLane, -nLongestAttackRange)
 		end
 
-		bot:Action_MoveToLocation(target_loc + RandomVector(50))
+		-- OHA MOD 2026/08/27: 50→150——50 码抖动=钉在原地（观感站桩），150 让 bot 有实际走位
+		bot:Action_MoveToLocation(target_loc + RandomVector(150))
 	end
 
 

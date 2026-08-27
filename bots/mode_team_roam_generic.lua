@@ -150,6 +150,12 @@ function GetDesireHelper()
         end
 
         -- 就近支援：有入侵时才触发（我方半场 ≥2 敌人）
+        -- OHA MOD 2026/08/27: 支援黏性（hold）——"半场≥2敌"是瞬态判断，TP 引导 3 秒期间
+        -- 敌人挪窝/死一个条件就消失 → 渴望度归零 → 落地时模式已掉 → TP 下来转身走人。
+        -- 触发支援时记 6 秒 hold（defend 的 BASE_THREAT_HOLD 同款思路），期间维持支援意愿
+        if GameTime() < (bot.ohaInvasionUntil or -1) and bot.ohaInvasionLoc ~= nil then
+            return 0.65
+        end
         if nEnemiesInOurHalf >= 2 and vInvasionCenter ~= nil then
             local botDist = GetUnitToLocationDistance(bot, vInvasionCenter)
 
@@ -157,6 +163,8 @@ function GetDesireHelper()
             if IsSupport and botDist <= 3500 and J.GetHP(bot) > 0.5 then
                 bot.teamRoamTPLocation = vInvasionCenter  -- 供 TP 逻辑读取
                 bot.teamRoamTPTime = GameTime()  -- 时间戳：5 秒内有效，防过期乱 TP
+                bot.ohaInvasionUntil = GameTime() + 6  -- 支援黏性：TP 期间条件波动不掉模式
+                bot.ohaInvasionLoc = vInvasionCenter
                 return 0.65
             end
 
@@ -179,6 +187,8 @@ function GetDesireHelper()
                     if nAllySupportNear >= 1 then
                         bot.teamRoamTPLocation = vInvasionCenter  -- 供 TP 逻辑读取
                         bot.teamRoamTPTime = GameTime()  -- 时间戳：5 秒内有效，防过期乱 TP
+                        bot.ohaInvasionUntil = GameTime() + 6  -- 支援黏性：TP 期间条件波动不掉模式
+                        bot.ohaInvasionLoc = vInvasionCenter
                         return 0.85
                     else
                         return 0.3  -- 没辅助会跟 → 观望，不深入送头
@@ -412,7 +422,7 @@ end
 -- Think
 -- ==============================
 function Think()
-    if J.CanNotUseAction(bot) then return end
+    if J.CanNotUseActionExceptQueue(bot) then return end
 	-- diabled think less to avoid failing to last hit
     -- if J.Utils.IsBotThinkingMeaningfulAction(bot, Customize.ThinkLess, "team_roam") then return end
 
@@ -450,6 +460,32 @@ function Think()
 
     if isInIdleState then
         isInIdleState = J.CheckBotIdleState()
+    end
+
+    -- OHA MOD 2026/08/27: 入侵支援 hold 期落地行为——TP/赶到场后打事发地附近敌人，
+    -- 没有可见敌人就朝事发地推进。修复"TP 下来转身走人不管队友"：
+    -- 入侵块的 return 在 targetUnit 全部赋值点之前，Think 原有的攻击分支（455/460）
+    -- 因 targetUnit==nil 永不执行 → 落地整帧无指令。
+    if GameTime() < (bot.ohaInvasionUntil or -1) and bot.ohaInvasionLoc ~= nil then
+        local nInvasionEnemies = J.GetEnemiesNearLoc(bot.ohaInvasionLoc, 1600)
+        local hInvTarget = nil
+        for _, enemy in ipairs(nInvasionEnemies) do
+            if J.IsValidHero(enemy) and not J.IsSuspiciousIllusion(enemy) and X.CanBeAttacked(enemy) then
+                hInvTarget = enemy
+                break
+            end
+        end
+        if hInvTarget ~= nil then
+            targetUnit = hInvTarget
+            bot:SetTarget(hInvTarget)
+            bot:Action_AttackUnit(hInvTarget, true)
+            return
+        end
+        if GetUnitToLocationDistance(bot, bot.ohaInvasionLoc) > 600 then
+            bot:Action_MoveToLocation(bot.ohaInvasionLoc + RandomVector(200))
+            return
+        end
+        -- 已到场且无敌人 → 等 hold 自然过期，交给其他模式接管
     end
 
     if ShouldHelpAlly and J.Utils.IsValidUnit(targetUnit) then

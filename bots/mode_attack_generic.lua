@@ -197,7 +197,9 @@ function Generic.Think()
 	if __target == nil then
 		-- 没人在打我们 → 骚扰敌人：打分选目标（作者 override 300-350 行简化版）
 		-- 优先脆皮（血量低）/核心（1.5 倍），跳过有保命状态的敌人
-		local targetScore = 0
+		-- OHA MOD 2026/08/27: 初始分 0→-1——满血敌人 score=(1-HP)*mul=0，"严格大于"永不选中
+		-- → __target=nil 整帧无指令 → attack/laning 横跳"走两步定住"的根因之一
+		local targetScore = -1
 		for _, enemy in pairs(nEnemyHeroes) do
 			if J.IsValidHero(enemy)
 			and not J.IsSuspiciousIllusion(enemy)
@@ -232,7 +234,10 @@ function Generic.Think()
 	end
 
 	-- 没有可攻击目标 → 结束本帧攻击模式
-	fLastAttackDesire = 0
+	-- OHA MOD 2026/08/27: 删掉 fLastAttackDesire = 0 手动清零——清零后下帧平滑值 0.126
+	-- < laning 0.369/0.446 → 模式被切走 → 平滑又在 laning 帧爬回 0.42 → 再切回来
+	-- → attack↔laning 横跳"走两步定一下"。让平滑值自然衰减即可（连续无目标几帧后
+	-- 平滑值自己会降到 0 附近，不需要人为砸零）
 end
 
 -- 顶层函数转发（引擎入口）：BuggyHeroes → 作者 override；普通英雄 → 本文件 Generic
