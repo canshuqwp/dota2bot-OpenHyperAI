@@ -143,9 +143,22 @@ function GetDesireHelper()
         end
 
         -- 守家特判：基地被 4+ 人压（大后期）→ 绝对回防；2+ 人逼近高地 → 紧急集合
+        -- OHA MOD 2026/08/28: 补写 ohaInvasion 字段——原来这两条 return 是"空手支援"：
+        -- 不写字段 → team_roam 抢到模式后 Think 落地分支全不触发 + targetUnit 恒 nil
+        -- → bot 冲到基地前无行为（守家站桩的另一成因）。写字段后 Think 会打基地附近
+        -- 敌人/向集结点走，与 defend 的 panic 分工不变（那边 tier 检测更全）
+        local hAllyAncientForHold = GetAncient(GetTeam())
         if nEnemiesNearBase >= 4 and J.IsLateGame() then
+            if hAllyAncientForHold then
+                bot.ohaInvasionUntil = GameTime() + 6
+                bot.ohaInvasionLoc = hAllyAncientForHold:GetLocation()
+            end
             return 1.0
         elseif nEnemiesNearBase >= 2 then
+            if hAllyAncientForHold then
+                bot.ohaInvasionUntil = GameTime() + 6
+                bot.ohaInvasionLoc = hAllyAncientForHold:GetLocation()
+            end
             return 0.95
         end
 

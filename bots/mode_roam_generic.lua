@@ -983,6 +983,9 @@ function ThinkActualGankingInLanes()
 
 		if distanceToGankLoc > bot:GetAttackRange() + 300 and bot:WasRecentlyDamagedByAnyHero(1.5) then
 			bot:Action_MoveToLocation(targetLoc)
+			-- OHA MOD 2026/08/28: 补 return——不 return 会继续跑下面的超时检查，
+			-- 正常赶路超时被静默清掉 laneToGank（gank 白走一趟，观感=走到一半莫名放弃）
+			return
 		end
 		if distanceToGankLoc < 600 and DotaTime() - arriveGankLocTime > gankTimeAfterArrival * 1.1 then
 			arriveGankLocTime = DotaTime()

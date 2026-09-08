@@ -5071,23 +5071,30 @@ X.ConsiderItemDesire["item_tpscroll"] = function( hItem )
 
 	if nMode == BOT_MODE_LANING
 	then
-		hEffectTarget, shouldTp = X.GetLaningTPLocation(bot, nMinTPDistance, botLocation)
-		sCastMotive = '出去发育'
-		if shouldTp
-		then
-			if botName == 'npc_dota_hero_furion'
+		-- OHA MOD 2026/08/28: 对线期禁用"出去发育"TP——GetLaningTPLocation 的 laneToTP 是
+		-- 身份死表（天辉 3/4→上路等）而非实际所在路，!pos 换位/临时帮线时两者不符 →
+		-- "人在 A 路但死表说属于 B 路"→ 距离>5500 → TP 去死表路 → laning Think 拽回实际路 →
+		-- 走回来 → 再 TP 的横跳循环（对线期前几分钟用户双方可见复报）。
+		-- 对线期兵线在塔边，走路回线很快，此分支价值≈零全是横跳风险；10 分钟后再启用
+		if not J.IsInLaningPhase() then
+			hEffectTarget, shouldTp = X.GetLaningTPLocation(bot, nMinTPDistance, botLocation)
+			sCastMotive = '出去发育'
+			if shouldTp
 			then
-				local Teleportation = bot:GetAbilityByName('furion_teleportation')
-				if Teleportation:IsTrained()
-				and Teleportation:IsFullyCastable()
+				if botName == 'npc_dota_hero_furion'
 				then
-					bot.useProphetTP = true
-					bot.ProphetTPLocation = hEffectTarget
-					return BOT_ACTION_DESIRE_NONE
+					local Teleportation = bot:GetAbilityByName('furion_teleportation')
+					if Teleportation:IsTrained()
+					and Teleportation:IsFullyCastable()
+					then
+						bot.useProphetTP = true
+						bot.ProphetTPLocation = hEffectTarget
+						return BOT_ACTION_DESIRE_NONE
+					end
 				end
-			end
 
-			return BOT_ACTION_DESIRE_HIGH, hEffectTarget, sCastType, sCastMotive
+				return BOT_ACTION_DESIRE_HIGH, hEffectTarget, sCastType, sCastMotive
+			end
 		end
 	end
 
