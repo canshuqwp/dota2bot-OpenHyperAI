@@ -567,18 +567,28 @@ function X.SupportFindTarget()
 
         local nNeutrals = bot:GetNearbyNeutralCreeps(nAttackRange + 150)
         local nAllies = J.GetNearbyHeroes(bot, 1300, false, BOT_MODE_NONE)
+        -- OHA MOD 2026/08/28: 辅助让核心野（bot 间秩序）——4/5 号位 + 野 700 码内有本方
+        -- 核心 → 不抢（原检查只防真人）。与 farm/laning 的让野规则统一
+        local bSupportYield = J.GetPosition(bot) >= 4
         if J.IsWithoutTarget(bot) and botMode ~= BOT_MODE_FARM and #nNeutrals > 0 and #nAllies <= 1 then
             for i = 1, #nNeutrals do
                 -- OHA MOD 2026/08/13: 真人玩家在野怪 700 码内 → 不抢（宁让勿抢版）
                 local bHumanFarming = false
+                local bCoreFarming = false
                 for _, ally in ipairs(GetUnitList(UNIT_LIST_ALLIED_HEROES)) do
-                	if J.IsValidHero(ally) and not ally:IsBot()
-                	and GetUnitToUnitDistance(ally, nNeutrals[i]) <= 700 then
-                		bHumanFarming = true
-                		break
+                	if J.IsValidHero(ally) then
+                		local dToNeutral = GetUnitToUnitDistance(ally, nNeutrals[i])
+                		if not ally:IsBot() and dToNeutral <= 700 then
+                			bHumanFarming = true
+                			break
+                		end
+                		if ally ~= bot and J.IsCore(ally) and dToNeutral <= 700 then
+                			bCoreFarming = true
+                		end
                 	end
                 end
                 if bHumanFarming then break end
+                if bSupportYield and bCoreFarming then break end
 
                 if X.CanBeAttacked(nNeutrals[i]) and not X.IsAllysTarget(nNeutrals[i])
                 and not J.IsTormentor(nNeutrals[i]) and not J.IsRoshan(nNeutrals[i])
@@ -945,15 +955,23 @@ function X.CarryFindTarget()
 				for i = 1,#nNeutrals
 				do
 					-- OHA MOD 2026/08/13: 真人玩家在野怪 700 码内 → 不抢（宁让勿抢版）
+					-- OHA MOD 2026/08/28: 辅助让核心野（bot 间秩序）——同 SupportFindTarget 版
 					local bHumanFarming = false
+					local bCoreFarming = false
 					for _, ally in ipairs(GetUnitList(UNIT_LIST_ALLIED_HEROES)) do
-						if J.IsValidHero(ally) and not ally:IsBot()
-						and GetUnitToUnitDistance(ally, nNeutrals[i]) <= 700 then
-							bHumanFarming = true
-							break
+						if J.IsValidHero(ally) then
+							local dToNeutral = GetUnitToUnitDistance(ally, nNeutrals[i])
+							if not ally:IsBot() and dToNeutral <= 700 then
+								bHumanFarming = true
+								break
+							end
+							if ally ~= bot and J.IsCore(ally) and dToNeutral <= 700 then
+								bCoreFarming = true
+							end
 						end
 					end
 					if bHumanFarming then break end
+					if J.GetPosition(bot) >= 4 and bCoreFarming then break end
 
 					if X.CanBeAttacked(nNeutrals[i])
 						and not X.IsAllysTarget(nNeutrals[i])

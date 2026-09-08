@@ -678,6 +678,18 @@ function Think()
 				break
 			end
 		end
+		-- OHA MOD 2026/08/28: 辅助让核心野（bot 间秩序版）——4/5 号位发现野 800 码内有
+		-- 本方核心（1/2/3 号位）就换营地，不查攻击状态（打野拉扯走位时攻击目标断续，
+		-- 状态检测必漏——与"宁让勿抢"同款教训）、不查真不真人（bot 核心与真人核心同等保护）。
+		-- 修"45 号位抢 123 的野怪"：原检查只防真人，bot 对 bot 零保护
+		if not bAllyFarming and J.GetPosition(bot) >= 4 then
+			for _, ally in pairs(nAllyNearCamp) do
+				if ally ~= bot and J.IsValidHero(ally) and not ally:IsIllusion() and J.IsCore(ally) then
+					bAllyFarming = true
+					break
+				end
+			end
+		end
 		if bAllyFarming and cDist > 400 then
 			-- Pick a different camp instead
 			J.Role['availableCampTable'], preferedCamp = J.Site.UpdateAvailableCamp(bot, preferedCamp, J.Role['availableCampTable']);

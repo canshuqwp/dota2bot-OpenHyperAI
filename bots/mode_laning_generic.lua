@@ -244,16 +244,24 @@ function Think()
 		-- OHA MOD 2026/08/13: 没刀没反补 → 打附近野（800 内）——治"无事可做=站桩挂机"
 		local nNeutrals = bot:GetNearbyNeutralCreeps(800)
 		-- 真人玩家在刷这组野（【野怪】700 码内有真人，不是 bot 距离！）→ 不抢
+		-- OHA MOD 2026/08/28: 辅助让核心野（bot 间秩序）——4/5 号位 + 野 700 码内有
+		-- 本方核心（不查攻击状态）→ 不打，走让刀兜底（兵线后站位）
 		local bHumanFarmingHere = false
+		local bCoreFarmingHere = false
 		for _, ally2 in ipairs(GetUnitList(UNIT_LIST_ALLIED_HEROES)) do
-			if J.IsValidHero(ally2) and not ally2:IsBot()
-			and #nNeutrals > 0
-			and GetUnitToUnitDistance(ally2, nNeutrals[1]) <= 700 then
-				bHumanFarmingHere = true
-				break
+			if J.IsValidHero(ally2) and #nNeutrals > 0 then
+				local dToCamp = GetUnitToUnitDistance(ally2, nNeutrals[1])
+				if not ally2:IsBot() and dToCamp <= 700 then
+					bHumanFarmingHere = true
+					break
+				end
+				if ally2 ~= bot and J.IsCore(ally2) and dToCamp <= 700 then
+					bCoreFarmingHere = true
+				end
 			end
 		end
-		if not bHumanFarmingHere and #nNeutrals > 0 then
+		if not bHumanFarmingHere and #nNeutrals > 0
+		and not (J.GetPosition(bot) >= 4 and bCoreFarmingHere) then
 			bot:SetTarget(nNeutrals[1])
 			bot:Action_AttackUnit(nNeutrals[1], true)
 			return
